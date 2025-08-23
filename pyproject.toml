@@ -1,9 +1,11 @@
 [tool.poetry]
 name = "chatbot"
 version = "0.1.0"
-description = "This is a project for multi-agent chatbot system."
+description = "An AI-powered chatbot with agent-based architecture."
 authors = ["Dan <asign1022@gmail>"]
+license = "MIT"
 readme = "README.md"
+packages = [{ include = "chatbot", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -11,24 +13,29 @@ pandas = "^2.2.2"
 pyyaml = "^6.0.2"
 python-dotenv = "^1.1.0"
 pydantic = "^2.11.3"
-
-
 opencv-python = "^4.11.0.86"
 matplotlib = "^3.10.3"
+langchain = { extras = ["openai"], version = "^0.3.27" }
+langchain-core = "^0.3.74"
+langgraph = "^0.6.6"
+langchain-tavily = "^0.2.11"
+
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.5.3"
 black = "^24.4.2"
+langchain-core = "^0.3.74"
+langgraph = "^0.6.6"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.scripts]
-chatbot = "JTCG_chatbot.cli:main"
+# [tool.poetry.scripts]
+# chatbot = "chatbot.cli:main"
 
-[tool.setuptools]
-package-dir = { "" = "src" }
+# [tool.setuptools]
+# package-dir = { "" = "src" }
 
 [tool.ruff]
 line-length = 100
