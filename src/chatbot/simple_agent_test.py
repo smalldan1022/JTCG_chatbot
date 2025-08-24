@@ -1,131 +1,239 @@
-from langchain.agents import AgentType, Tool, initialize_agent
-from langchain.callbacks.base import BaseCallbackHandler
+from typing import Annotated, Literal, TypedDict
+
 from langchain.chat_models import init_chat_model
-from langchain.memory import ConversationBufferMemory
+from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.tools import tool
 from langchain_tavily import TavilySearch
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.graph import END, StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
 from utils.load_env import get_openai_api_key, get_tavily_api_key
 
 
 # -----------------------------
-# 自定義 Callback 來捕捉所有步驟
+# 1️⃣ 定義狀態
 # -----------------------------
-class DetailedCallbackHandler(BaseCallbackHandler):
-    def __init__(self):
-        self.step_count = 0
-
-    def on_agent_action(self, action, **kwargs):
-        self.step_count += 1
-        print(f"\n🔧 STEP {self.step_count}: ACTION")
-        print(f"Tool: {action.tool}")
-        print(f"Input: {action.tool_input}")
-        print(f"Reasoning: {action.log}")
-        print("-" * 50)
-
-    def on_tool_start(self, serialized, input_str, **kwargs):
-        print(f"🛠️  TOOL EXECUTION: {serialized.get('name', 'Unknown')}")
-        print(f"Input: {input_str}")
-
-    def on_tool_end(self, output, **kwargs):
-        print("📤 TOOL RESULT:")
-        print(f"Output: {output}")
-        print("-" * 50)
-
-    def on_agent_finish(self, finish, **kwargs):
-        print("✅ FINAL ANSWER:")
-        print(f"Output: {finish.return_values}")
-        print("=" * 60)
+class AgentState(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]
+    user_info: dict  # 儲存使用者資訊（姓名、地點等）
 
 
 # -----------------------------
-# 1️⃣ 取得 API key
+# 2️⃣ 初始化工具
 # -----------------------------
 api_key = get_openai_api_key()
 tavily_api_key = get_tavily_api_key()
 
+search_tool = TavilySearch(api_key=tavily_api_key, max_results=3)
+checkpointer = InMemorySaver()
+
+
+@tool
+def web_search(query: str) -> str:
+    """Search the web for current information."""
+    try:
+        results = search_tool.run(query)
+        return f"Search results: {results}"
+    except Exception as e:
+        return f"Search failed: {str(e)}"
+
+
+tools = [web_search]
+
 # -----------------------------
-# 2️⃣ 初始化模型
+# 3️⃣ 初始化模型
 # -----------------------------
 model = init_chat_model(
-    model="gpt-4o-mini", model_provider="openai", api_key=api_key, temperature=0, max_tokens=1000
-)
+    model="gpt-4o-mini", model_provider="openai", api_key=api_key, temperature=0
+).bind_tools(tools)
+
 
 # -----------------------------
-# 3️⃣ 初始化工具
+# 4️⃣ 定義節點函數
 # -----------------------------
-search_tool = TavilySearch(api_key=tavily_api_key, max_results=3)
+def agent_node(state: AgentState) -> AgentState:
+    """主要的 agent 推理節點"""
+    print("🤖 AGENT THINKING...")
 
-tools = [
-    Tool(
-        name="Search",
-        func=search_tool.run,
-        description="Use this tool to search the web for current information. Input should be a search query.",
+    # 系統訊息
+    system_msg = SystemMessage(
+        content="""
+    You are a helpful assistant. Remember user information from the conversation.
+    When you need current information, use the web_search tool.
+    Think step by step and show your reasoning clearly.
+    
+    Always check if you have the information needed before using tools.
+    """
     )
-]
+
+    # 建構訊息列表
+    messages = [system_msg] + state["messages"]
+
+    # 調用模型
+    response = model.invoke(messages)
+
+    print(f"💭 AGENT RESPONSE: {response.content}")
+    if response.tool_calls:
+        print(f"🛠️  TOOLS TO CALL: {[tc['name'] for tc in response.tool_calls]}")
+
+    return {"messages": [response]}
+
+
+def extract_user_info(state: AgentState) -> AgentState:
+    """提取並記憶使用者資訊"""
+    user_info = state.get("user_info", {})
+
+    # 簡單的資訊提取邏輯
+    for message in state["messages"]:
+        if isinstance(message, HumanMessage):
+            content = message.content.lower()
+            if "my name is" in content or "i'm" in content:
+                # 提取姓名
+                words = content.split()
+                for i, word in enumerate(words):
+                    if word in ["i'm", "name", "is"] and i + 1 < len(words):
+                        name = words[i + 1].strip(",.!")
+                        if name.isalpha():
+                            user_info["name"] = name
+
+            if "live in" in content or "from" in content:
+                # 提取地點
+                if "live in" in content:
+                    location = content.split("live in")[-1].strip(",.!")
+                elif "from" in content:
+                    location = content.split("from")[-1].strip(",.!")
+                user_info["location"] = location.strip()
+
+    print(f"📝 UPDATED USER INFO: {user_info}")
+    return {"user_info": user_info}
+
+
+def should_continue(state: AgentState) -> Literal["tools", "end"]:
+    """決定是否需要使用工具"""
+    last_message = state["messages"][-1]
+    if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+        print("➡️  CONTINUING TO TOOLS")
+        return "tools"
+    print("✅ ENDING CONVERSATION")
+    return "end"
+
 
 # -----------------------------
-# 4️⃣ 初始化記憶體
+# 5️⃣ 建立圖
 # -----------------------------
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+def create_agent_graph():
+    workflow = StateGraph(AgentState)
 
-# -----------------------------
-# 5️⃣ 建立 AgentExecutor（使用 callback）
-# -----------------------------
-callback_handler = DetailedCallbackHandler()
+    # 添加節點
+    workflow.add_node("extract_info", extract_user_info)
+    workflow.add_node("agent", agent_node)
+    workflow.add_node("tools", ToolNode(tools))
 
-agent_executor = initialize_agent(
-    tools=tools,
-    llm=model,
-    agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
-    memory=memory,
-    max_iterations=5,
-    handle_parsing_errors=True,
-    verbose=True,  # 啟用內建的 verbose
-    callbacks=[callback_handler],  # 添加自定義 callback
-)
+    # 定義邊
+    workflow.set_entry_point("extract_info")
+    workflow.add_edge("extract_info", "agent")
+    workflow.add_conditional_edges("agent", should_continue, {"tools": "tools", "end": END})
+    workflow.add_edge("tools", "agent")
 
-# -----------------------------
-# 6️⃣ 系統 prompt
-# -----------------------------
-system_message = """You are a helpful assistant. 
-When you need current information, use the search tool.
-Think step by step and show your reasoning process clearly."""
+    return workflow.compile(checkpointer=checkpointer)
+
 
 # -----------------------------
-# 7️⃣ 多輪對話示例
+# 6️⃣ 執行對話
 # -----------------------------
-inputs = [
-    "Hi, I'm Bob and I live in SF.",
-    "What's my name and where do I live?",
-    "What's the current weather in the place I am living?",
-]
+def run_conversation():
+    app = create_agent_graph()
 
-for i, user_input in enumerate(inputs, 1):
-    print(f"\n{'=' * 60}")
-    print(f"CONVERSATION ROUND {i}")
-    print(f"{'=' * 60}")
-    print(f"👤 USER: {user_input}")
-    print(f"{'=' * 60}")
+    # 初始狀態
+    initial_state = {"messages": [], "user_info": {}}
 
-    # 重置步驟計數器
-    callback_handler.step_count = 0
+    inputs = [
+        "Hi, I'm Bob and I live in SF.",
+        "What's my name and where do I live?",
+        "What's the current weather in the place I am living?",
+    ]
 
-    try:
-        # 執行對話
-        result = agent_executor.run(input=f"{system_message}\n\nUser: {user_input}")
+    current_state = initial_state
 
-        print("\n🤖 FINAL RESPONSE:")
-        print(f"{result}")
+    for i, user_input in enumerate(inputs, 1):
+        print(f"\n{'=' * 70}")
+        print(f"CONVERSATION ROUND {i}")
+        print(f"{'=' * 70}")
+        print(f"👤 USER: {user_input}")
+        print("-" * 50)
 
-    except Exception as e:
-        print(f"❌ ERROR: {e}")
+        # 添加使用者訊息
+        current_state["messages"].append(HumanMessage(content=user_input))
 
-    print("\n📝 CURRENT MEMORY:")
-    print(f"Chat History: {memory.chat_memory.messages}")
-    print("\n" + "=" * 80 + "\n")
+        # 執行圖並顯示每個步驟
+        step_count = 0
+        for step in app.stream(
+            current_state, config={"configurable": {"thread_id": "1"}}, stream_mode="updates"
+        ):
+            step_count += 1
+            print(f"\n📋 STEP {step_count}:")
+
+            for node_name, node_output in step.items():
+                print(f"  🔹 NODE: {node_name}")
+
+                # 更新狀態
+                current_state.update(node_output)
+
+                # 顯示新訊息
+                if "messages" in node_output:
+                    for msg in node_output["messages"]:
+                        if isinstance(msg, AIMessage):
+                            print(f"    🤖 AI: {msg.content}")
+                            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                                for tc in msg.tool_calls:
+                                    print(f"    🔧 TOOL CALL: {tc['name']} with {tc['args']}")
+                        elif isinstance(msg, ToolMessage):
+                            print(f"    🛠️  TOOL RESULT: {msg.content[:200]}...")
+
+                if "user_info" in node_output:
+                    print(f"    📝 USER INFO: {node_output['user_info']}")
+
+        print("\n💾 FINAL STATE:")
+        print(f"   Messages: {len(current_state['messages'])}")
+        print(f"   User Info: {current_state['user_info']}")
+        print(f"\n{'=' * 70}")
+
 
 # -----------------------------
-# 8️⃣ 額外：顯示完整記憶體內容
+# 7️⃣ 另一個版本：更詳細的 streaming
 # -----------------------------
-print("🧠 COMPLETE CONVERSATION MEMORY:")
-for i, message in enumerate(memory.chat_memory.messages):
-    print(f"{i + 1}. {message.__class__.__name__}: {message.content}")
+def run_conversation_detailed_stream():
+    """使用更詳細的 streaming 模式"""
+    app = create_agent_graph()
+
+    initial_state = {"messages": [], "user_info": {}}
+
+    inputs = [
+        "Hi, I'm Bob and I live in SF.",
+        "What's my name and where do I live?",
+        "What's the current weather in the place I am living?",
+    ]
+
+    current_state = initial_state
+
+    for user_input in inputs:
+        print(f"\n👤 USER: {user_input}")
+        print("=" * 60)
+
+        current_state["messages"].append(HumanMessage(content=user_input))
+
+        # 使用 debug stream 模式
+        for chunk in app.stream(
+            current_state,
+            stream_mode="debug",  # 顯示更多細節
+            debug=True,
+        ):
+            print(f"📦 CHUNK: {chunk}")
+
+        print("=" * 60)
+
+
+if __name__ == "__main__":
+    print("🚀 Starting LangGraph Agent...")
+    run_conversation()
