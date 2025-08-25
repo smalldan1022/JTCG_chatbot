@@ -67,18 +67,7 @@ class VectorSearchTool(BaseAgentTool):
     def __init__(self, vec_db_manager: VecDBManager):
         self.vec_db_manager = vec_db_manager
         csv_path = "/home/smalldan/chatbot/data/raw/ai-eng-test-sample-knowledges.csv"
-        text_columns = [
-            "id",
-            "title",
-            "content",
-            "urls/0/label",
-            "urls/0/href",
-            "images/0",
-            "tags/0",
-            "tags/1",
-            "tags/2",
-        ]
-        self.vec_db_manager.init_from_csv(csv_path=csv_path, text_columns=text_columns)
+        self.vec_db_manager.init_from_csv(csv_path=csv_path)
         self.vec_db = self.vec_db_manager.vec_db
 
     def get_tool_name(self) -> str:
