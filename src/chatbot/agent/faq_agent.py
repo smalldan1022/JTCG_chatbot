@@ -13,7 +13,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from chatbot.tool.base_tool import ToolManager
-from chatbot.tool.faq_tool import ProductSearchTool, VectorSearchTool
+from chatbot.tool.faq_tool import KnowledgeSearchTool, SimpleProductSearchTool
 from chatbot.utils.load_env import get_openai_api_key
 from chatbot.utils.vector_db import VecDBManager
 
@@ -44,8 +44,8 @@ class FAQAgent(AgentFactory):
         self.checkpointer = self.get_checkpointer()
 
     def _setup_tools(self):
-        self.tool_manager.register_tool(ProductSearchTool())
-        self.tool_manager.register_tool(VectorSearchTool(self.vec_db_manager))
+        self.tool_manager.register_tool(SimpleProductSearchTool())
+        self.tool_manager.register_tool(KnowledgeSearchTool(self.vec_db_manager))
 
         print(f"🔧 Total registered tool number: {len(self.tool_manager.tools)}.")
 
