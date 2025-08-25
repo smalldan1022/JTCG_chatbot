@@ -4,8 +4,7 @@ from typing import Literal
 from agent_factory import AgentFactory, GenericAgentState
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
-from langchain_core.tools import tool
+from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -70,22 +69,6 @@ class FAQAgent(AgentFactory):
             temperature=self.config.temperature,
             max_tokens=self.config.max_token,
         ).bind_tools(tools)
-
-    @tool
-    def provide_product_information(self, state: GenericAgentState) -> str:
-        """Fallback function for searching the product informations"""
-        user_info = state.get("user_info", {})
-        messages = state.get("messages", [])
-        if not messages:
-            return "No messages found in state."
-
-        last_message = messages[-1]
-        query = last_message["content"] if isinstance(last_message, dict) else last_message.content
-
-        print(f"QUERY: {query}")
-        results = ProductSearchTool().run(query)
-        formatted_results = "\n".join([f"- {r['title']}: {r['link']}" for r in results])
-        return f"User info: {user_info}\nSearch results: {formatted_results}"
 
     def extract_user_info(self, state: GenericAgentState):
         """This is just a simple user information extraction"""
@@ -191,48 +174,6 @@ class FAQAgent(AgentFactory):
         graph.add_edge("tools", "agent")
 
         return graph.compile(checkpointer=self.checkpointer)
-
-    def run_conversation(self, user_inputs: list[str]):
-        if not self.graph:
-            self.graph = self.create_agent_graph()
-
-        initial_state = {"messages": [], "user_info": {}}
-        current_state = initial_state
-
-        for i, user_input in enumerate(user_inputs):
-            print(f"\n{'=' * 70}")
-            print(f"CONVERSATION ROUND {i}")
-            print(f"{'=' * 70}")
-            print(f"👤 USER: {user_input}")
-            print("-" * 50)
-            current_state["messages"].append(HumanMessage(content=user_input))
-
-            step_count = 0
-            for step in self.graph.stream(
-                current_state, config=self.config.graph_invoke_config, stream_mode="updates"
-            ):
-                step_count += 1
-                print(f"\n📋 STEP {step_count}:")
-
-                for node_name, node_output in step.items():
-                    print(f"  🔹 NODE: {node_name}")
-                    current_state.update(node_output)
-                    if "messages" in node_output:
-                        for msg in node_output["messages"]:
-                            if isinstance(msg, AIMessage):
-                                print(f"    🤖 AI: {msg.content}")
-                                if hasattr(msg, "tool_calls") and msg.tool_calls:
-                                    for tc in msg.tool_calls:
-                                        print(f"    🔧 TOOL CALL: {tc['name']} with {tc['args']}")
-                            elif isinstance(msg, ToolMessage):
-                                print(f"    🛠️  TOOL RESULT: {msg.content[:200]}...")
-                    if "user_info" in node_output:
-                        print(f"    📝 USER INFO: {node_output['user_info']}")
-
-            print("\n💾 FINAL STATE:")
-            print(f"   Messages: {len(current_state['messages'])}")
-            print(f"   User Info: {current_state['user_info']}")
-            print(f"\n{'=' * 70}")
 
 
 if __name__ == "__main__":
