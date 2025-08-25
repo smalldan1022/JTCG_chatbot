@@ -6,7 +6,7 @@ from chatbot.tool.base_tool import BaseAgentTool
 from chatbot.utils.vector_db import VecDBManager
 
 
-class ProductSearchTool(BaseAgentTool):
+class SimpleProductSearchTool(BaseAgentTool):
     name: str = "product_search"
     description: str = (
         "Search relevant products for the user's query and provide links and brief descriptions."
@@ -63,7 +63,7 @@ class ProductSearchTool(BaseAgentTool):
         return product_search
 
 
-class VectorSearchTool(BaseAgentTool):
+class KnowledgeSearchTool(BaseAgentTool):
     def __init__(self, vec_db_manager: VecDBManager):
         self.vec_db_manager = vec_db_manager
         csv_path = "/home/smalldan/chatbot/data/raw/ai-eng-test-sample-knowledges.csv"
