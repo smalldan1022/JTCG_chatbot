@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import Annotated
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AnyMessage
+from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, ToolMessage
 from langchain_core.tools import BaseTool
 from langgraph.graph import StateGraph
 from langgraph.graph.message import add_messages
@@ -34,6 +34,44 @@ class AgentFactory(ABC):
     def get_llm(self):
         pass
 
-    @abstractmethod
-    def run_conversation(self):
-        pass
+    def run_conversation(self, user_inputs: list[str]):
+        if not self.graph:
+            self.graph = self.create_agent_graph()
+
+        initial_state = {"messages": [], "user_info": {}}
+        current_state = initial_state
+
+        for i, user_input in enumerate(user_inputs):
+            print(f"\n{'=' * 70}")
+            print(f"CONVERSATION ROUND {i}")
+            print(f"{'=' * 70}")
+            print(f"👤 USER: {user_input}")
+            print("-" * 50)
+            current_state["messages"].append(HumanMessage(content=user_input))
+
+            step_count = 0
+            for step in self.graph.stream(
+                current_state, config=self.config.graph_invoke_config, stream_mode="updates"
+            ):
+                step_count += 1
+                print(f"\n📋 STEP {step_count}:")
+
+                for node_name, node_output in step.items():
+                    print(f"  🔹 NODE: {node_name}")
+                    current_state.update(node_output)
+                    if "messages" in node_output:
+                        for msg in node_output["messages"]:
+                            if isinstance(msg, AIMessage):
+                                print(f"    🤖 AI: {msg.content}")
+                                if hasattr(msg, "tool_calls") and msg.tool_calls:
+                                    for tc in msg.tool_calls:
+                                        print(f"    🔧 TOOL CALL: {tc['name']} with {tc['args']}")
+                            elif isinstance(msg, ToolMessage):
+                                print(f"    🛠️  TOOL RESULT: {msg.content[:200]}...")
+                    if "user_info" in node_output:
+                        print(f"    📝 USER INFO: {node_output['user_info']}")
+
+            print("\n💾 FINAL STATE:")
+            print(f"   Messages: {len(current_state['messages'])}")
+            print(f"   User Info: {current_state['user_info']}")
+            print(f"\n{'=' * 70}")
