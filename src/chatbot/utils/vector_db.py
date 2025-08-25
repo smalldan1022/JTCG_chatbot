@@ -12,12 +12,12 @@ class VecDBManager:
         embeddings = OpenAIEmbeddings(api_key=self.api_key)
         self.vec_db = FAISS.from_texts(texts, embeddings)
 
-    def init_from_csv(self, csv_path: str, text_columns: list[str]):
+    def init_from_csv(self, csv_path: str):
         df = pd.read_csv(csv_path)
 
         texts = []
         for _, row in df.iterrows():
-            combined_text = " | ".join([str(row[col]) for col in text_columns if col in df.columns])
+            combined_text = " | ".join([str(row[col]) for col in df.columns])
             texts.append(combined_text)
 
         self.init_from_texts(texts)
