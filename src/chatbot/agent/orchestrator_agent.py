@@ -67,8 +67,8 @@ class LLMRouter:
 
         可用的代理類型及其職責:
         1. handover_agent: 處理客訴、情緒激動、要求真人客服的情況
-        2. order_agent: 處理訂單查詢、訂單狀態、退換貨、物流問題
-        3. faq_agent: 處理常見問題、政策查詢、一般資訊
+        2. order_agent: 處理訂單查詢、訂單狀態、
+        3. faq_agent: 處理常見問題、退換貨、物流運送問題、保固、發票、安裝指南、一般資訊
         4. product_agent: 處理產品資訊、規格查詢、兼容性問題
         5. redirect_agent: 處理與本店無關的問題（其他品牌、無關話題）
 
