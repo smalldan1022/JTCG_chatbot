@@ -40,6 +40,7 @@ class AgentFactory(ABC):
 
         initial_state = {"messages": [], "user_info": {}}
         current_state = initial_state
+        last_ai_message = None
 
         for i, user_input in enumerate(user_inputs):
             print(f"\n{'=' * 70}")
@@ -62,6 +63,7 @@ class AgentFactory(ABC):
                     if "messages" in node_output:
                         for msg in node_output["messages"]:
                             if isinstance(msg, AIMessage):
+                                last_ai_message = msg.content
                                 print(f"    🤖 AI: {msg.content}")
                                 if hasattr(msg, "tool_calls") and msg.tool_calls:
                                     for tc in msg.tool_calls:
@@ -71,7 +73,8 @@ class AgentFactory(ABC):
                     if "user_info" in node_output:
                         print(f"    📝 USER INFO: {node_output['user_info']}")
 
-            print("\n💾 FINAL STATE:")
-            print(f"   Messages: {len(current_state['messages'])}")
-            print(f"   User Info: {current_state['user_info']}")
-            print(f"\n{'=' * 70}")
+        print("\n💾 FINAL STATE:")
+        print(f"   Messages: {len(current_state['messages'])}")
+        print(f"   User Info: {current_state['user_info']}")
+        print(f"\n{'=' * 70}")
+        return last_ai_message
