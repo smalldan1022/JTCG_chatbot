@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-from agent_factory import AgentFactory, GenericAgentState
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -12,6 +11,7 @@ from langgraph.checkpoint.redis import RedisSaver
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 
+from chatbot.agent.agent_factory import AgentFactory, GenericAgentState
 from chatbot.tool.base_tool import ToolManager
 from chatbot.tool.product_tool import ProductSearchTool, RequirementCheckerTool
 from chatbot.utils.load_env import get_openai_api_key
