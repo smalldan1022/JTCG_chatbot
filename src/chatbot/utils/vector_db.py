@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
@@ -19,5 +21,27 @@ class VecDBManager:
         for _, row in df.iterrows():
             combined_text = " | ".join([str(row[col]) for col in df.columns])
             texts.append(combined_text)
+
+        self.init_from_texts(texts)
+
+    def init_from_json(self, json_path: str):
+        with open(json_path, encoding="utf-8") as f:
+            data = json.load(f)
+
+        texts = []
+        if isinstance(data, list):
+            # JSON array，每個元素是一個 dict
+            for item in data:
+                if isinstance(item, dict):
+                    combined_text = " | ".join([f"{k}: {v}" for k, v in item.items()])
+                else:
+                    combined_text = str(item)
+                texts.append(combined_text)
+        elif isinstance(data, dict):
+            # 單個 JSON object
+            combined_text = " | ".join([f"{k}: {v}" for k, v in data.items()])
+            texts.append(combined_text)
+        else:
+            texts.append(str(data))
 
         self.init_from_texts(texts)
