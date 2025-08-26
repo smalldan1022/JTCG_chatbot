@@ -37,11 +37,8 @@ langgraph-checkpoint-redis = "^0.1.1"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-# [tool.poetry.scripts]
-# chatbot = "chatbot.cli:main"
-
-# [tool.setuptools]
-# package-dir = { "" = "src" }
+[tool.poetry.scripts]
+chatbot = "chatbot.cli:main"
 
 [tool.ruff]
 line-length = 100
