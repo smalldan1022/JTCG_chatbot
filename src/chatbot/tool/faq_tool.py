@@ -13,9 +13,7 @@ class SimpleProductSearchTool(BaseAgentTool):
     )
 
     def __init__(self):
-        self.product_df = pd.read_csv(
-            "/home/smalldan/chatbot/data/raw/ai-eng-test-sample-products.csv"
-        )
+        self.product_df = pd.read_csv("chatbot/data/raw/ai-eng-test-sample-products.csv")
 
     def get_tool_name(self) -> str:
         return "product_search"
@@ -66,7 +64,7 @@ class SimpleProductSearchTool(BaseAgentTool):
 class KnowledgeSearchTool(BaseAgentTool):
     def __init__(self, vec_db_manager: VecDBManager):
         self.vec_db_manager = vec_db_manager
-        csv_path = "/home/smalldan/chatbot/data/raw/ai-eng-test-sample-knowledges.csv"
+        csv_path = "chatbot/data/raw/ai-eng-test-sample-knowledges.csv"
         self.vec_db_manager.init_from_csv(csv_path=csv_path)
         self.vec_db = self.vec_db_manager.vec_db
 

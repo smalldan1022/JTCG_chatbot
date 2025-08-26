@@ -10,7 +10,7 @@ from chatbot.utils.vector_db import VecDBManager
 class OrderSearchTool(BaseAgentTool):
     def __init__(self, vec_db_manager: VecDBManager):
         self.vec_db_manager = vec_db_manager
-        json_path = "/home/smalldan/chatbot/data/raw/ai-eng-test-sample-order.json"
+        json_path = "data/raw/ai-eng-test-sample-order.json"
         self.vec_db_manager.init_from_json(json_path=json_path)
         self.vec_db = self.vec_db_manager.vec_db
 
