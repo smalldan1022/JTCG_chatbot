@@ -8,7 +8,7 @@ from chatbot.utils.vector_db import VecDBManager
 class ProductSearchTool(BaseAgentTool):
     def __init__(self, vec_db_manager: VecDBManager):
         self.vec_db_manager = vec_db_manager
-        csv_path = "/home/smalldan/chatbot/data/raw/ai-eng-test-sample-products.csv"
+        csv_path = "data/raw/ai-eng-test-sample-products.csv"
         self.vec_db_manager.init_from_csv(csv_path=csv_path)
         self.vec_db = self.vec_db_manager.vec_db
 
