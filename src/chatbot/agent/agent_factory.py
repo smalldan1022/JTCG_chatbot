@@ -69,7 +69,7 @@ class AgentFactory(ABC):
                                     for tc in msg.tool_calls:
                                         print(f"    🔧 TOOL CALL: {tc['name']} with {tc['args']}")
                             elif isinstance(msg, ToolMessage):
-                                print(f"    🛠️  TOOL RESULT: {msg.content[:200]}...")
+                                print(f"    🛠️  TOOL RESULT: {msg.content}...")
                     if "user_info" in node_output:
                         print(f"    📝 USER INFO: {node_output['user_info']}")
 

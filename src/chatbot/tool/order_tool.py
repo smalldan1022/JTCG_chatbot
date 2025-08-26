@@ -34,7 +34,7 @@ class OrderSearchTool(BaseAgentTool):
             order_id = query_lower.split("order_id=")[-1].split(",")[0].strip()
 
         if not user_id:
-            return {"error": "缺少 user_id，請提供 user_id 以查詢訂單。"}
+            return {"error": "缺少 user_id, 請提供 user_id 以查詢訂單。"}
 
         user_orders = self.orders_data.get(user_id)
         if not user_orders:
@@ -95,7 +95,7 @@ class OrderSearchTool(BaseAgentTool):
     def execute(self, query: str, k: int = 3) -> str:
         try:
             if "user_id=" in query.lower():
-                return json.dumps(self._search(query), ensure_ascii=False, indent=2)
+                return json.dumps(self._structure_search(query), ensure_ascii=False, indent=2)
             else:
                 return self._semantic_search(query, k=k)
         except Exception as e:
