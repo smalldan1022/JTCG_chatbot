@@ -19,7 +19,7 @@ langchain = { extras = ["openai"], version = "^0.3.27" }
 langchain-core = "^0.3.74"
 langgraph = "^0.6.6"
 langchain-tavily = "^0.2.11"
-psycopg = {extras = ["binary"], version = "^3.2.9"}
+psycopg = { extras = ["binary"], version = "^3.2.9" }
 langchain-community = "^0.3.27"
 faiss-cpu = "^1.12.0"
 textblob = "^0.19.0"
