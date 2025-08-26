@@ -2,8 +2,9 @@ from chatbot.agent.orchestrator_agent import OrchestratorAgent
 
 
 class Chatbot:
-    def __init__(self, user_info: dict = None) -> None:
+    def __init__(self) -> None:
         self.orchestrator = OrchestratorAgent()
+        self._user_info = {}
         self.default_test_messages = [
             "我想查詢訂單 12345",
             "user_id=u_123456",
@@ -13,6 +14,30 @@ class Chatbot:
             "這個螢幕支援什麼尺寸？",
         ]
         self.default_user_info = {"name": "測試用戶", "email": "test@example.com"}
+
+    @property
+    def user_id(self) -> str | None:
+        return self._user_info.get("user_id", None)
+
+    @user_id.setter
+    def user_id(self, user_id: str) -> None:
+        self._user_info["user_id"] = user_id
+
+    @property
+    def user_name(self) -> str | None:
+        return self._user_info.get("user_name", None)
+
+    @user_name.setter
+    def user_name(self, user_name: str) -> None:
+        self._user_info["user_name"] = user_name
+
+    @property
+    def email(self) -> str | None:
+        return self._user_info.get("email", None)
+
+    @email.setter
+    def email(self, email: str) -> None:
+        self._user_info["email"] = email
 
     @staticmethod
     def pretty_print(response: dict) -> None:
@@ -29,7 +54,7 @@ class Chatbot:
         return self.orchestrator.route_and_execute(message, user_info)
 
     def dry_run(self, user_info: dict = None, messages: list[str] = None) -> None:
-        user_info = user_info or {"name": "測試用戶", "email": "test@example.com"}
+        user_info = user_info or self.default_user_info
         messages = messages or self.default_test_messages
         for i, message in enumerate(messages):
             print(f"\n{'='*60}")
