@@ -63,6 +63,17 @@ class Chatbot:
             response = self.process_single_user_message(message, user_info)
             self.pretty_print(response)
 
+    def run_interactive(self):
+        print("💬 進入互動模式 (輸入 'exit' 或 'q' 結束)\n")
+        while True:
+            user_input = input("👤 你: ").strip()
+            if user_input.lower() in ["exit", "q"]:
+                print("👋 再見！")
+                break
+
+            response = self.process_single_user_message(user_input, self._user_info)
+            self.pretty_print(response)
+
 
 if __name__ == "__main__":
     chatbot = Chatbot()
