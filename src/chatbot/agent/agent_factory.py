@@ -63,12 +63,13 @@ class AgentFactory(ABC):
         print(f"   User Info: {self.current_state['user_info']}")
         print(f"\n{'=' * 70}")
 
-    def run_conversation(self, user_inputs: list[str]):
+    def run_conversation(self, user_inputs: list[str], is_display: bool = False):
         if not self.graph:
             self.graph = self.create_agent_graph()
 
         for round, user_input in enumerate(user_inputs):
-            self.init_conversation_layout(round=round, user_input=user_input)
+            if is_display:
+                self.init_conversation_layout(round=round, user_input=user_input)
             # Add user messages into chat history
             self.current_state["messages"].append(HumanMessage(content=user_input))
 
@@ -77,20 +78,18 @@ class AgentFactory(ABC):
                 self.current_state, config=self.config.graph_invoke_config, stream_mode="updates"
             ):
                 step_count += 1
-                print(f"\n📋 STEP {step_count}:")
+                if is_display:
+                    print(f"\n📋 STEP {step_count}:")
 
                 for node_name, node_output in step.items():
-                    print(f"  🔹 NODE: {node_name}")
+                    if is_display:
+                        print(f"  🔹 NODE: {node_name}")
                     # Add LLM generated messages into chat history
                     for key, val in node_output.items():
                         if key == "messages" and isinstance(val, list):
                             self.current_state["messages"].extend(val)
-                    self.step_conversation_layout(node_output=node_output)
-        self.last_conversation_layout()
+                    if is_display:
+                        self.step_conversation_layout(node_output=node_output)
+        if is_display:
+            self.last_conversation_layout()
         return self.last_ai_message
-
-        print("\n💾 FINAL STATE:")
-        print(f"   Messages: {len(current_state['messages'])}")
-        print(f"   User Info: {current_state['user_info']}")
-        print(f"\n{'=' * 70}")
-        return last_ai_message
