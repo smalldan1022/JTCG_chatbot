@@ -195,7 +195,9 @@ class OrchestratorAgent:
         print("🚀 OrchestratorAgent 初始化完成")
         print(f"   已載入 {len(self.agents)} 個專門代理")
 
-    def route_and_execute(self, message: str, user_info: dict[str, Any] = None) -> dict[str, Any]:
+    def route_and_execute(
+        self, message: str, user_info: dict[str, Any] = None, is_display: bool = None
+    ) -> dict[str, Any]:
         user_info = user_info or {}
 
         print(f"\n📨 收到訊息: {message}")
@@ -216,7 +218,7 @@ class OrchestratorAgent:
                 selected_agent,
                 routing_result.agent_type,
                 self.conversation_state,
-                user_info,
+                is_display,
                 routing_result,
             )
 
@@ -242,38 +244,38 @@ class OrchestratorAgent:
         self,
         agent,
         agent_type: AgentType,
-        conversation_state: list,
-        user_info: dict[str, Any],
+        conversation_state: dict,
+        is_display: bool,
         routing_result: RoutingResult,
     ) -> str:
         try:
             match agent_type:
                 case AgentType.HANDOVER:
                     return self._execute_handover_agent(
-                        agent, conversation_state[agent_type], user_info, routing_result
+                        agent, conversation_state[agent_type], is_display, routing_result
                     )
 
                 case AgentType.ORDER:
-                    return agent.run_conversation(conversation_state[agent_type])
+                    return agent.run_conversation(conversation_state[agent_type], is_display)
 
                 case AgentType.FAQ:
-                    return agent.run_conversation(conversation_state[agent_type])
+                    return agent.run_conversation(conversation_state[agent_type], is_display)
 
                 case AgentType.PRODUCT:
-                    return agent.run_conversation(conversation_state[agent_type])
+                    return agent.run_conversation(conversation_state[agent_type], is_display)
 
                 case AgentType.REDIRECT:
-                    return agent.run_conversation(conversation_state[agent_type])
+                    return agent.run_conversation(conversation_state[agent_type], is_display)
 
                 case _:
-                    return agent.run_conversation(conversation_state[agent_type])
+                    return agent.run_conversation(conversation_state[agent_type], is_display)
 
         except Exception as e:
             print(f"_execute_agent Error ({agent_type.value}): {e}")
             return f"Agent Excuting Error ({agent_type.value}): {e}"
 
     def _execute_handover_agent(
-        self, agent, message: str, user_info: dict[str, Any], routing_result: RoutingResult
+        self, agent, message: str, is_display: bool, routing_result: RoutingResult
     ) -> str:
         try:
             if routing_result.should_handover and routing_result.sentiment_score:
@@ -282,17 +284,8 @@ class OrchestratorAgent:
                 {routing_result.reason}
 
                 讓我來幫助您解決這個問題"""
-
                 print(comfort_message)
-
-            if hasattr(agent, "run_conversation"):
-                if isinstance(message, list):
-                    return agent.run_conversation(user_inputs=message)
-                else:
-                    return agent.run_conversation(user_inputs=[message])
-            else:
-                return "已為您安排轉接真人客服，請稍候。"
-
+            return agent.run_conversation(message, is_display)
         except Exception as e:
             print(f"_execute_handover_agent Error: {e}")
             return "我們已記錄您的問題，客服將盡快與您聯繫。"
