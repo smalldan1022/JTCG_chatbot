@@ -4,15 +4,14 @@ An chatbot project on JTCG
 
 ## 📋 Table of Contents
 - [About](#about)
-- [Features](#features)
+- [Features](#Features)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
-- [API Documentation](#api-documentation)
-- [Contributing](#contributing)
 - [License](#license)
 - [Contact](#contact)
+- [Acknowledgments](#Acknowledgments)
 
 ## 🤖 About
 
