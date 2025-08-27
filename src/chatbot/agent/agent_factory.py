@@ -21,6 +21,8 @@ class AgentFactory(ABC):
     tools: list[BaseTool] = field(default_factory=list)
     agent_state: GenericAgentState = field(default_factory=dict)
     graph: StateGraph | None = None
+    current_state: dict = field(default_factory=lambda: {"messages": [], "user_info": {}})
+    last_ai_message: str | None = None
 
     @abstractmethod
     def create_agent_graph(self):
