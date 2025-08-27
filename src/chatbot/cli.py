@@ -42,6 +42,10 @@ def main() -> None:
     )
 
     arg_parser.add_argument(
+        "--display", "-d", action="store_true", help="Show detailed conversation output"
+    )
+
+    arg_parser.add_argument(
         "--mode",
         "-m",
         type=str,
@@ -67,6 +71,8 @@ def main() -> None:
         chatbot.user_name = args.user_name
     if args.email:
         chatbot.email = args.email
+    if args.display:
+        chatbot.is_display = True
 
     if args.interactive:
         chatbot.run_interactive()
