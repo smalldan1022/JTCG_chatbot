@@ -30,7 +30,7 @@ class VecDBManager:
 
         texts = []
         if isinstance(data, list):
-            # JSON array，每個元素是一個 dict
+            # json array, each element is a dict
             for item in data:
                 if isinstance(item, dict):
                     combined_text = " | ".join([f"{k}: {v}" for k, v in item.items()])
@@ -38,7 +38,7 @@ class VecDBManager:
                     combined_text = str(item)
                 texts.append(combined_text)
         elif isinstance(data, dict):
-            # 單個 JSON object
+            # Single json object
             combined_text = " | ".join([f"{k}: {v}" for k, v in data.items()])
             texts.append(combined_text)
         else:
