@@ -4,7 +4,8 @@ from chatbot.agent.orchestrator_agent import OrchestratorAgent
 class Chatbot:
     def __init__(self) -> None:
         self.orchestrator = OrchestratorAgent()
-        self._user_info = {}
+        self.user_info = {}
+        self._is_display = False
         self.default_test_messages = [
             "我想查詢訂單 12345",
             "user_id=u_123456",
@@ -16,28 +17,36 @@ class Chatbot:
         self.default_user_info = {"name": "測試用戶", "email": "test@example.com"}
 
     @property
+    def is_display(self) -> bool:
+        return self._is_display
+
+    @is_display.setter
+    def is_display(self, is_display: bool) -> None:
+        self._is_display = is_display
+
+    @property
     def user_id(self) -> str | None:
-        return self._user_info.get("user_id", None)
+        return self.user_info.get("user_id", None)
 
     @user_id.setter
     def user_id(self, user_id: str) -> None:
-        self._user_info["user_id"] = user_id
+        self.user_info["user_id"] = user_id
 
     @property
     def user_name(self) -> str | None:
-        return self._user_info.get("user_name", None)
+        return self.user_info.get("user_name", None)
 
     @user_name.setter
     def user_name(self, user_name: str) -> None:
-        self._user_info["user_name"] = user_name
+        self.user_info["user_name"] = user_name
 
     @property
     def email(self) -> str | None:
-        return self._user_info.get("email", None)
+        return self.user_info.get("email", None)
 
     @email.setter
     def email(self, email: str) -> None:
-        self._user_info["email"] = email
+        self.user_info["email"] = email
 
     @staticmethod
     def pretty_print(response: dict) -> None:
@@ -50,8 +59,10 @@ class Chatbot:
         if response.get("message"):
             print(f"\n💬 回應: {response['message']}")
 
-    def process_single_user_message(self, message: str, user_info: dict = None) -> dict:
-        return self.orchestrator.route_and_execute(message, user_info)
+    def process_single_user_message(
+        self, message: str, user_info: dict = None, is_display: bool = False
+    ) -> dict:
+        return self.orchestrator.route_and_execute(message, user_info, is_display)
 
     def dry_run(self, user_info: dict = None, messages: list[str] = None) -> None:
         user_info = user_info or self.default_user_info
@@ -71,7 +82,7 @@ class Chatbot:
                 print("👋 再見！")
                 break
 
-            response = self.process_single_user_message(user_input, self._user_info)
+            response = self.process_single_user_message(user_input, self.user_info, self.is_display)
             self.pretty_print(response)
 
 
